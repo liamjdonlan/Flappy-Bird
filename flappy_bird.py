@@ -18,6 +18,7 @@ def create_pipe():
 def move_pipes(pipes):
     for pipe in pipes:
         pipe.centerx -= PIPE_SPEED
+    pipes = [pipe for pipe in pipes if pipe.centerx > -100]
     return pipes
 
 
@@ -31,9 +32,11 @@ def draw_pipes(pipes):
 
 
 def check_collision(pipes):
+    global can_score
     for pipe in pipes:
         if bird_rect.colliderect(pipe):
             death_sound.play()
+            can_score = True
             return False
 
         if bird_rect.top <= -100 or bird_rect.bottom >= 400:
@@ -72,10 +75,22 @@ def score_display(game_state):
         screen.blit(high_score_surface, high_score_rect)
 
 
-def update_score(score, high_score):
+def update_high_score(score, high_score):
     if score > high_score:
         high_score = score
     return high_score
+
+
+def update_score(pipes):
+    global can_score
+    global score
+    for pipe in pipes:
+        if 45 < pipe.centerx < 55 and can_score == True:
+            score += 1
+            score_sound.play()
+            can_score = False
+        elif pipe.centerx < 0:
+            can_score = True
 
 
 pygame.init()
@@ -95,7 +110,7 @@ score = 0
 high_score = 0
 bird_movement = 0
 game_active = True
-
+can_score = True
 bg_surface = pygame.image.load("sprites/background-day.png").convert()
 
 floor_surface = pygame.image.load("sprites/base.png").convert()
@@ -130,8 +145,6 @@ game_over_rect = game_over_surface.get_rect(center=(144, 256))
 flap_sound = pygame.mixer.Sound("audio/wing.ogg")
 death_sound = pygame.mixer.Sound("audio/hit.ogg")
 score_sound = pygame.mixer.Sound("audio/point.ogg")
-
-score_countdown = 100
 
 while True:
     for event in pygame.event.get():
@@ -178,15 +191,11 @@ while True:
         draw_pipes(pipe_list)
 
         # Score
-        score += 0.01
         score_display("main_game")
-        score_countdown -= 1
-        if score_countdown <= 0:
-            score_sound.play()
-            score_countdown = 100
+        update_score(pipe_list)
     else:
         screen.blit(game_over_surface, game_over_rect)
-        high_score = update_score(score, high_score)
+        high_score = update_high_score(score, high_score)
         score_display("game_over")
 
     # Floor
